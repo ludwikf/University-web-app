@@ -16,6 +16,7 @@ const btnDanger =
 
 type Props = {
   projects: Project[];
+  activeProjectId: string | null;
   editingId: string | null;
   editTitle: string;
   editDescription: string;
@@ -25,10 +26,12 @@ type Props = {
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onDelete: (id: string) => void;
+  onSetActiveProject: (projectId: string) => void;
 };
 
 export function ProjectsTableView({
   projects,
+  activeProjectId,
   editingId,
   editTitle,
   editDescription,
@@ -38,6 +41,7 @@ export function ProjectsTableView({
   onSaveEdit,
   onCancelEdit,
   onDelete,
+  onSetActiveProject,
 }: Props) {
   return (
     <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
@@ -49,6 +53,9 @@ export function ProjectsTableView({
             </th>
             <th className="px-4 py-3 text-sm font-semibold text-zinc-700">
               Opis
+            </th>
+            <th className="px-4 py-3 text-sm font-semibold text-zinc-700 w-[100px]">
+              Aktywny
             </th>
             <th className="px-4 py-3 text-sm font-semibold text-zinc-700 w-[140px]">
               Akcje
@@ -79,6 +86,7 @@ export function ProjectsTableView({
                     className={`${inputBase} ${inputSm}`}
                   />
                 </td>
+                <td className="px-4 py-2">—</td>
                 <td className="px-4 py-2">
                   <div className="flex gap-2">
                     <button
@@ -101,13 +109,28 @@ export function ProjectsTableView({
             ) : (
               <tr
                 key={p.id}
-                className="border-b border-zinc-100 hover:bg-zinc-50/80 transition-colors"
+                className={`border-b border-zinc-100 hover:bg-zinc-50/80 transition-colors ${
+                  activeProjectId === p.id ? "bg-indigo-50/50" : ""
+                }`}
               >
                 <td className="px-4 py-3 font-medium text-zinc-900">
                   {p.title}
                 </td>
                 <td className="px-4 py-3 text-sm text-zinc-600 max-w-md">
                   {p.description || "—"}
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => onSetActiveProject(p.id)}
+                    className={`${btnBase} ${btnSm} ${
+                      activeProjectId === p.id
+                        ? "bg-indigo-100 text-indigo-700"
+                        : btnGhost
+                    }`}
+                  >
+                    {activeProjectId === p.id ? "Aktywny" : "Ustaw"}
+                  </button>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">

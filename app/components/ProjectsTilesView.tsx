@@ -16,6 +16,7 @@ const btnDanger =
 
 type Props = {
   projects: Project[];
+  activeProjectId: string | null;
   editingId: string | null;
   editTitle: string;
   editDescription: string;
@@ -25,10 +26,12 @@ type Props = {
   onSaveEdit: () => void;
   onCancelEdit: () => void;
   onDelete: (id: string) => void;
+  onSetActiveProject: (projectId: string) => void;
 };
 
 export function ProjectsTilesView({
   projects,
+  activeProjectId,
   editingId,
   editTitle,
   editDescription,
@@ -38,6 +41,7 @@ export function ProjectsTilesView({
   onSaveEdit,
   onCancelEdit,
   onDelete,
+  onSetActiveProject,
 }: Props) {
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
@@ -80,7 +84,11 @@ export function ProjectsTilesView({
         ) : (
           <div
             key={p.id}
-            className="bg-white border border-zinc-200 rounded-xl p-5 flex flex-col gap-3 transition-colors hover:border-zinc-300 hover:shadow-lg"
+            className={`bg-white border rounded-xl p-5 flex flex-col gap-3 transition-colors hover:border-zinc-300 hover:shadow-lg ${
+              activeProjectId === p.id
+                ? "border-indigo-500 ring-2 ring-indigo-500/20"
+                : "border-zinc-200"
+            }`}
           >
             <h2 className="text-[1.0625rem] font-semibold tracking-tight m-0 leading-tight">
               {p.title}
@@ -90,7 +98,18 @@ export function ProjectsTilesView({
                 {p.description}
               </p>
             ) : null}
-            <div className="flex gap-2 mt-auto pt-2 border-t border-zinc-200">
+            <div className="flex flex-wrap gap-2 mt-auto pt-2 border-t border-zinc-200">
+              <button
+                type="button"
+                onClick={() => onSetActiveProject(p.id)}
+                className={`${btnBase} ${btnSm} ${
+                  activeProjectId === p.id
+                    ? "bg-indigo-100 text-indigo-700"
+                    : btnGhost
+                }`}
+              >
+                {activeProjectId === p.id ? "Aktywny" : "Ustaw jako aktywny"}
+              </button>
               <button
                 type="button"
                 onClick={() => onStartEdit(p)}

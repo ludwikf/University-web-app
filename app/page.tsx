@@ -1,14 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   type Project,
   getProjects,
   saveProjects,
   createProject,
 } from "./lib/projects";
+import { getCurrentUser } from "./lib/user";
+import { getActiveProjectId, setActiveProjectId } from "./lib/activeProject";
+import {
+  getStoriesByProject,
+  createStory,
+  updateStory,
+  deleteStory,
+} from "./lib/stories";
+import { MOCK_USER } from "./lib/user";
 import { ProjectsTilesView } from "./components/ProjectsTilesView";
 import { ProjectsTableView } from "./components/ProjectsTableView";
+import { StoriesSection } from "./components/StoriesSection";
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -19,11 +29,21 @@ export default function Home() {
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [viewMode, setViewMode] = useState<"tiles" | "table">("tiles");
+  const [activeProjectId, setActiveProjectIdState] = useState<string | null>(
+    null
+  );
+  const [stories, setStories] = useState<
+    ReturnType<typeof getStoriesByProject>
+  >([]);
   const hasHydrated = useRef(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
+  const currentUser = useMemo(() => getCurrentUser(), []);
+  const usersById = useMemo(() => new Map([[MOCK_USER.id, MOCK_USER]]), []);
+
   useEffect(() => {
     setProjects(getProjects());
+    setActiveProjectIdState(getActiveProjectId());
     const id = requestAnimationFrame(() => {
       hasHydrated.current = true;
     });
@@ -33,6 +53,64 @@ export default function Home() {
   useEffect(() => {
     if (hasHydrated.current) saveProjects(projects);
   }, [projects]);
+
+  useEffect(() => {
+    if (
+      activeProjectId !== null &&
+      !projects.some((p) => p.id === activeProjectId)
+    ) {
+      setActiveProject(null);
+    }
+  }, [activeProjectId, projects]);
+
+  useEffect(() => {
+    if (activeProjectId) setStories(getStoriesByProject(activeProjectId));
+    else setStories([]);
+  }, [activeProjectId]);
+
+  function setActiveProject(id: string | null) {
+    setActiveProjectIdState(id);
+    setActiveProjectId(id);
+    if (id) setStories(getStoriesByProject(id));
+  }
+
+  function refreshStories() {
+    if (activeProjectId) setStories(getStoriesByProject(activeProjectId));
+  }
+
+  function handleAddStory(
+    nazwa: string,
+    opis: string,
+    priorytet: "niski" | "średni" | "wysoki"
+  ) {
+    if (!activeProjectId) return;
+    createStory(activeProjectId, nazwa, opis, priorytet, currentUser);
+  }
+
+  function handleUpdateStoryStatus(
+    storyId: string,
+    stan: "todo" | "doing" | "done"
+  ) {
+    if (!activeProjectId) return;
+    updateStory(activeProjectId, storyId, { stan });
+  }
+
+  function handleUpdateStory(
+    storyId: string,
+    patch: {
+      nazwa?: string;
+      opis?: string;
+      priorytet?: "niski" | "średni" | "wysoki";
+    }
+  ) {
+    if (!activeProjectId) return;
+    updateStory(activeProjectId, storyId, patch);
+  }
+
+  function handleDeleteStory(storyId: string) {
+    if (!activeProjectId) return;
+    deleteStory(activeProjectId, storyId);
+  }
 
   useEffect(() => {
     if (!dialogRef.current) return;
@@ -92,9 +170,14 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex justify-between items-center px-[30px] pt-6 flex-wrap gap-3">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Project Manager
-        </h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-semibold tracking-tight">
+            Project Manager
+          </h1>
+          <span className="text-sm text-zinc-500 border-l border-zinc-200 pl-4">
+            Zalogowany: {currentUser.firstName} {currentUser.lastName}
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-zinc-500">Widok:</span>
           <div
@@ -136,33 +219,59 @@ export default function Home() {
       </div>
       <div className="border-t border-zinc-200 mt-4" />
 
-      <section className="flex-1 px-[30px] py-6 overflow-auto">
-        {viewMode === "tiles" ? (
-          <ProjectsTilesView
-            projects={projects}
-            editingId={editingId}
-            editTitle={editTitle}
-            editDescription={editDescription}
-            onEditTitle={setEditTitle}
-            onEditDescription={setEditDescription}
-            onStartEdit={startEdit}
-            onSaveEdit={saveEdit}
-            onCancelEdit={cancelEdit}
-            onDelete={handleDelete}
-          />
-        ) : (
-          <ProjectsTableView
-            projects={projects}
-            editingId={editingId}
-            editTitle={editTitle}
-            editDescription={editDescription}
-            onEditTitle={setEditTitle}
-            onEditDescription={setEditDescription}
-            onStartEdit={startEdit}
-            onSaveEdit={saveEdit}
-            onCancelEdit={cancelEdit}
-            onDelete={handleDelete}
-          />
+      <section className="flex-1 px-[30px] py-6 overflow-auto space-y-8">
+        <div>
+          <h2 className="text-sm font-medium text-zinc-500 mb-3">Projekty</h2>
+          {viewMode === "tiles" ? (
+            <ProjectsTilesView
+              projects={projects}
+              activeProjectId={activeProjectId}
+              editingId={editingId}
+              editTitle={editTitle}
+              editDescription={editDescription}
+              onEditTitle={setEditTitle}
+              onEditDescription={setEditDescription}
+              onStartEdit={startEdit}
+              onSaveEdit={saveEdit}
+              onCancelEdit={cancelEdit}
+              onDelete={handleDelete}
+              onSetActiveProject={(id) => setActiveProject(id)}
+            />
+          ) : (
+            <ProjectsTableView
+              projects={projects}
+              activeProjectId={activeProjectId}
+              editingId={editingId}
+              editTitle={editTitle}
+              editDescription={editDescription}
+              onEditTitle={setEditTitle}
+              onEditDescription={setEditDescription}
+              onStartEdit={startEdit}
+              onSaveEdit={saveEdit}
+              onCancelEdit={cancelEdit}
+              onDelete={handleDelete}
+              onSetActiveProject={(id) => setActiveProject(id)}
+            />
+          )}
+        </div>
+
+        {activeProjectId && (
+          <div className="pt-6 border-t border-zinc-200">
+            <StoriesSection
+              projectId={activeProjectId}
+              projectTitle={
+                projects.find((p) => p.id === activeProjectId)?.title ?? ""
+              }
+              stories={stories}
+              currentUser={currentUser}
+              usersById={usersById}
+              onStoriesChange={refreshStories}
+              onCreateStory={handleAddStory}
+              onUpdateStoryStatus={handleUpdateStoryStatus}
+              onUpdateStory={handleUpdateStory}
+              onDeleteStory={handleDeleteStory}
+            />
+          </div>
         )}
       </section>
 
