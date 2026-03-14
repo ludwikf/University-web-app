@@ -7,6 +7,8 @@ import {
   saveProjects,
   createProject,
 } from "./lib/projects";
+import { ProjectsTilesView } from "./components/ProjectsTilesView";
+import { ProjectsTableView } from "./components/ProjectsTableView";
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -16,6 +18,7 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [viewMode, setViewMode] = useState<"tiles" | "table">("tiles");
   const hasHydrated = useRef(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -77,7 +80,6 @@ export default function Home() {
 
   const inputBase =
     "w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 bg-white text-zinc-900 text-[0.9375rem] outline-none transition placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
-  const inputSm = "px-3 py-2 text-sm";
   const btnBase =
     "rounded-lg font-medium cursor-pointer border-none transition-colors";
   const btnAdd =
@@ -86,93 +88,81 @@ export default function Home() {
   const btnPrimary = "bg-indigo-500 text-white hover:bg-indigo-400";
   const btnGhost =
     "bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100";
-  const btnDanger =
-    "bg-transparent text-red-600 hover:bg-red-50 hover:text-red-700";
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="flex justify-between items-center px-[30px] pt-6">
+      <div className="flex justify-between items-center px-[30px] pt-6 flex-wrap gap-3">
         <h1 className="text-xl font-semibold tracking-tight">
           Project Manager
         </h1>
-        <button
-          type="button"
-          onClick={() => setDialogOpen(true)}
-          className={`${btnBase} ${btnAdd}`}
-        >
-          Dodaj projekt
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-zinc-500">Widok:</span>
+          <div
+            role="group"
+            aria-label="Tryb widoku"
+            className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5"
+          >
+            <button
+              type="button"
+              onClick={() => setViewMode("tiles")}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                viewMode === "tiles"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              Kafelki
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                viewMode === "table"
+                  ? "bg-white text-zinc-900 shadow-sm"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              Tabela
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            className={`${btnBase} ${btnAdd}`}
+          >
+            Dodaj projekt
+          </button>
+        </div>
       </div>
       <div className="border-t border-zinc-200 mt-4" />
 
-      <section className="flex-1 px-[30px] py-6 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5">
-        {projects.map((p) =>
-          editingId === p.id ? (
-            <div
-              key={p.id}
-              className="bg-white border border-zinc-200 rounded-xl p-5 flex flex-col gap-3.5"
-            >
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className={`${inputBase} ${inputSm}`}
-                autoFocus
-              />
-              <textarea
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                rows={3}
-                className={`${inputBase} ${inputSm} resize-y min-h-[60px]`}
-              />
-              <div className="flex gap-2 mt-auto pt-2 border-t border-zinc-200">
-                <button
-                  type="button"
-                  onClick={saveEdit}
-                  className={`${btnBase} ${btnSm} ${btnPrimary}`}
-                >
-                  Zapisz
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className={`${btnBase} ${btnSm} ${btnGhost}`}
-                >
-                  Anuluj
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div
-              key={p.id}
-              className="bg-white border border-zinc-200 rounded-xl p-5 flex flex-col gap-3 transition-colors hover:border-zinc-300 hover:shadow-lg"
-            >
-              <h2 className="text-[1.0625rem] font-semibold tracking-tight m-0 leading-tight">
-                {p.title}
-              </h2>
-              {p.description ? (
-                <p className="text-sm text-zinc-600 m-0 leading-relaxed flex-1">
-                  {p.description}
-                </p>
-              ) : null}
-              <div className="flex gap-2 mt-auto pt-2 border-t border-zinc-200">
-                <button
-                  type="button"
-                  onClick={() => startEdit(p)}
-                  className={`${btnBase} ${btnSm} ${btnGhost}`}
-                >
-                  Edytuj
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(p.id)}
-                  className={`${btnBase} ${btnSm} ${btnDanger}`}
-                >
-                  Usuń
-                </button>
-              </div>
-            </div>
-          )
+      <section className="flex-1 px-[30px] py-6 overflow-auto">
+        {viewMode === "tiles" ? (
+          <ProjectsTilesView
+            projects={projects}
+            editingId={editingId}
+            editTitle={editTitle}
+            editDescription={editDescription}
+            onEditTitle={setEditTitle}
+            onEditDescription={setEditDescription}
+            onStartEdit={startEdit}
+            onSaveEdit={saveEdit}
+            onCancelEdit={cancelEdit}
+            onDelete={handleDelete}
+          />
+        ) : (
+          <ProjectsTableView
+            projects={projects}
+            editingId={editingId}
+            editTitle={editTitle}
+            editDescription={editDescription}
+            onEditTitle={setEditTitle}
+            onEditDescription={setEditDescription}
+            onStartEdit={startEdit}
+            onSaveEdit={saveEdit}
+            onCancelEdit={cancelEdit}
+            onDelete={handleDelete}
+          />
         )}
       </section>
 
