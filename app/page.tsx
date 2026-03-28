@@ -7,7 +7,6 @@ import {
   saveProjects,
   createProject,
 } from "./lib/projects";
-import { getCurrentUser } from "./lib/user";
 import { getActiveProjectId, setActiveProjectId } from "./lib/activeProject";
 import {
   getStoriesByProject,
@@ -15,10 +14,24 @@ import {
   updateStory,
   deleteStory,
 } from "./lib/stories";
-import { MOCK_USER } from "./lib/user";
+import {
+  getTasksByProject,
+  createTask,
+  deleteTask,
+  assignTaskToUser,
+  markTaskDone,
+  updateTask,
+  deleteTasksByStory,
+} from "./lib/tasks";
+import { MOCK_USERS, usersToMap, getCurrentUser, type User } from "./lib/user";
+import type { StoryPriority } from "./lib/stories";
+import type { Task } from "./lib/tasks";
 import { ProjectsTilesView } from "./components/ProjectsTilesView";
 import { ProjectsTableView } from "./components/ProjectsTableView";
 import { StoriesSection } from "./components/StoriesSection";
+import { TasksKanban } from "./components/TasksKanban";
+import { TaskDetailDialog } from "./components/TaskDetailDialog";
+import { AddTaskDialog } from "./components/AddTaskDialog";
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -35,11 +48,15 @@ export default function Home() {
   const [stories, setStories] = useState<
     ReturnType<typeof getStoriesByProject>
   >([]);
+  const [tasks, setTasks] = useState<ReturnType<typeof getTasksByProject>>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
   const hasHydrated = useRef(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const taskDetailRef = useRef<HTMLDialogElement>(null);
 
   const currentUser = useMemo(() => getCurrentUser(), []);
-  const usersById = useMemo(() => new Map([[MOCK_USER.id, MOCK_USER]]), []);
+  const usersById = useMemo(() => usersToMap(MOCK_USERS), []);
 
   useEffect(() => {
     setProjects(getProjects());
@@ -68,10 +85,27 @@ export default function Home() {
     else setStories([]);
   }, [activeProjectId]);
 
+  useEffect(() => {
+    if (activeProjectId) setTasks(getTasksByProject(activeProjectId));
+    else setTasks([]);
+  }, [activeProjectId]);
+
+  function refreshTasks() {
+    if (activeProjectId) setTasks(getTasksByProject(activeProjectId));
+  }
+
+  function refreshStoriesAndTasks() {
+    refreshStories();
+    refreshTasks();
+  }
+
   function setActiveProject(id: string | null) {
     setActiveProjectIdState(id);
     setActiveProjectId(id);
-    if (id) setStories(getStoriesByProject(id));
+    if (id) {
+      setStories(getStoriesByProject(id));
+      setTasks(getTasksByProject(id));
+    }
   }
 
   function refreshStories() {
@@ -109,7 +143,28 @@ export default function Home() {
 
   function handleDeleteStory(storyId: string) {
     if (!activeProjectId) return;
+    deleteTasksByStory(storyId);
     deleteStory(activeProjectId, storyId);
+    refreshStoriesAndTasks();
+  }
+
+  function handleCreateTask(
+    historiaId: string,
+    nazwa: string,
+    opis: string,
+    priorytet: "niski" | "średni" | "wysoki",
+    estimatedHours: number
+  ) {
+    if (!activeProjectId) return;
+    createTask(
+      activeProjectId,
+      historiaId,
+      nazwa,
+      opis,
+      priorytet,
+      estimatedHours
+    );
+    refreshTasks();
   }
 
   useEffect(() => {
@@ -117,6 +172,12 @@ export default function Home() {
     if (dialogOpen) dialogRef.current.showModal();
     else dialogRef.current.close();
   }, [dialogOpen]);
+
+  useEffect(() => {
+    if (!taskDetailRef.current) return;
+    if (selectedTaskId) taskDetailRef.current.showModal();
+    else taskDetailRef.current.close();
+  }, [selectedTaskId]);
 
   function handleAdd() {
     const t = title.trim();
@@ -175,7 +236,8 @@ export default function Home() {
             Project Manager
           </h1>
           <span className="text-sm text-zinc-500 border-l border-zinc-200 pl-4">
-            Zalogowany: {currentUser.firstName} {currentUser.lastName}
+            Zalogowany: {currentUser.firstName} {currentUser.lastName} (
+            {currentUser.role})
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -217,7 +279,12 @@ export default function Home() {
           </button>
         </div>
       </div>
-      <div className="border-t border-zinc-200 mt-4" />
+      <div className="px-[30px] pb-2 text-xs text-zinc-500">
+        Użytkownicy:{" "}
+        {MOCK_USERS.map((u) => `${u.firstName} ${u.lastName} (${u.role})`).join(
+          " · "
+        )}
+      </div>
 
       <section className="flex-1 px-[30px] py-6 overflow-auto space-y-8">
         <div>
@@ -256,24 +323,92 @@ export default function Home() {
         </div>
 
         {activeProjectId && (
-          <div className="pt-6 border-t border-zinc-200">
-            <StoriesSection
-              projectId={activeProjectId}
-              projectTitle={
-                projects.find((p) => p.id === activeProjectId)?.title ?? ""
-              }
-              stories={stories}
-              currentUser={currentUser}
-              usersById={usersById}
-              onStoriesChange={refreshStories}
-              onCreateStory={handleAddStory}
-              onUpdateStoryStatus={handleUpdateStoryStatus}
-              onUpdateStory={handleUpdateStory}
-              onDeleteStory={handleDeleteStory}
-            />
-          </div>
+          <>
+            <div className="pt-6 border-t border-zinc-200">
+              <StoriesSection
+                projectId={activeProjectId}
+                projectTitle={
+                  projects.find((p) => p.id === activeProjectId)?.title ?? ""
+                }
+                stories={stories}
+                currentUser={currentUser}
+                usersById={usersById}
+                onStoriesChange={refreshStoriesAndTasks}
+                onCreateStory={handleAddStory}
+                onUpdateStoryStatus={handleUpdateStoryStatus}
+                onUpdateStory={handleUpdateStory}
+                onDeleteStory={handleDeleteStory}
+              />
+            </div>
+            <div className="pt-6 border-t border-zinc-200">
+              <TasksKanban
+                tasks={tasks}
+                stories={stories}
+                onSelectTask={(id) => setSelectedTaskId(id)}
+                onAddTask={() => setAddTaskOpen(true)}
+              />
+            </div>
+          </>
         )}
       </section>
+
+      <TaskDetailDialog
+        ref={taskDetailRef}
+        taskId={selectedTaskId}
+        tasks={tasks}
+        stories={stories}
+        usersById={usersById}
+        assignableUsers={MOCK_USERS.filter(
+          (u) => u.role === "developer" || u.role === "devops"
+        )}
+        onClose={() => setSelectedTaskId(null)}
+        onAssign={(user: User) => {
+          if (!selectedTaskId) return;
+          assignTaskToUser(selectedTaskId, user);
+          refreshStoriesAndTasks();
+        }}
+        onMarkDone={() => {
+          if (!selectedTaskId) return;
+          markTaskDone(selectedTaskId);
+          refreshStoriesAndTasks();
+        }}
+        onUpdateActualHours={(hours: number) => {
+          if (!selectedTaskId) return;
+          updateTask(selectedTaskId, { actualHoursWorked: hours });
+          refreshTasks();
+        }}
+        onUpdateTask={(
+          patch: Partial<
+            Pick<Task, "nazwa" | "opis" | "priorytet" | "estimatedHours">
+          >
+        ) => {
+          if (!selectedTaskId) return;
+          updateTask(selectedTaskId, patch);
+          refreshTasks();
+        }}
+        onDelete={() => {
+          if (!selectedTaskId) return;
+          deleteTask(selectedTaskId);
+          refreshTasks();
+          setSelectedTaskId(null);
+        }}
+      />
+
+      <AddTaskDialog
+        open={addTaskOpen}
+        onClose={() => setAddTaskOpen(false)}
+        stories={stories}
+        onCreate={(
+          hid: string,
+          nazwa: string,
+          opis: string,
+          pri: StoryPriority,
+          h: number
+        ) => {
+          handleCreateTask(hid, nazwa, opis, pri, h);
+          setAddTaskOpen(false);
+        }}
+      />
 
       <dialog
         ref={dialogRef}

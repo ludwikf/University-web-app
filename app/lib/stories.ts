@@ -37,6 +37,10 @@ export function getStoriesByProject(projectId: string): Story[] {
     .sort((a, b) => a.createdAt - b.createdAt);
 }
 
+export function getStoryById(storyId: string): Story | null {
+  return getStored().find((s) => s.id === storyId) ?? null;
+}
+
 export function saveStories(stories: Story[]): void {
   setStored(stories);
 }
