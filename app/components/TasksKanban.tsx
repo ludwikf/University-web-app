@@ -5,11 +5,9 @@ import { TASK_STATUS_LABELS } from "../lib/tasks";
 import type { Story } from "../lib/stories";
 import { STORY_PRIORITY_LABELS } from "../lib/stories";
 import type { StoryPriority } from "../lib/stories";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-const btnBase =
-  "rounded-lg font-medium cursor-pointer border-none transition-colors";
-const btnSm = "py-1.5 px-3 text-[0.8125rem]";
-const btnPrimary = "bg-indigo-500 text-white hover:bg-indigo-400";
 const PRIORITY_ORDER: Record<StoryPriority, number> = {
   wysoki: 0,
   średni: 1,
@@ -50,42 +48,41 @@ export function TasksKanban({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-semibold text-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-foreground">
           Tablica zadań (Kanban)
         </h2>
-        <button
-          type="button"
-          onClick={onAddTask}
-          className={`${btnBase} ${btnSm} ${btnPrimary}`}
-        >
+        <Button size="sm" onClick={onAddTask}>
           + Dodaj zadanie
-        </button>
+        </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {cols.map(({ key, list }) => (
           <div
             key={key}
-            className="bg-zinc-50 border border-zinc-200 rounded-xl min-h-[120px] flex flex-col"
+            className="flex min-h-[120px] flex-col rounded-xl border border-border bg-muted/40"
           >
-            <div className="px-3 py-2 border-b border-zinc-200 text-sm font-medium text-zinc-700">
+            <div className="border-b border-border px-3 py-2 text-sm font-medium text-foreground">
               {TASK_STATUS_LABELS[key]}
             </div>
-            <div className="p-2 space-y-2 flex-1">
+            <div className="flex-1 space-y-2 p-2">
               {list.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => onSelectTask(t.id)}
-                  className="w-full text-left p-3 rounded-lg border border-zinc-200 bg-white hover:border-indigo-300 hover:shadow-sm transition-colors"
+                  className={cn(
+                    "w-full rounded-lg border border-border bg-card p-3 text-left transition-colors",
+                    "hover:border-primary/50 hover:shadow-sm"
+                  )}
                 >
-                  <div className="font-medium text-zinc-900 text-sm">
+                  <div className="text-sm font-medium text-foreground">
                     {t.nazwa}
                   </div>
-                  <div className="text-xs text-zinc-500 mt-1 line-clamp-1">
+                  <div className="mt-1 line-clamp-1 text-xs text-muted-foreground">
                     {storyTitle(t.historiaId)}
                   </div>
-                  <div className="text-xs text-zinc-400 mt-1">
+                  <div className="mt-1 text-xs text-muted-foreground/80">
                     {STORY_PRIORITY_LABELS[t.priorytet]} · {t.estimatedHours} h
                   </div>
                 </button>

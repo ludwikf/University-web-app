@@ -1,26 +1,32 @@
 "use client";
 
-import { forwardRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Task } from "../lib/tasks";
 import { TASK_STATUS_LABELS } from "../lib/tasks";
 import type { Story } from "../lib/stories";
 import { STORY_PRIORITY_LABELS } from "../lib/stories";
 import type { StoryPriority } from "../lib/stories";
 import type { User } from "../lib/user";
-
-const inputBase =
-  "w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 bg-white text-zinc-900 text-[0.9375rem] outline-none transition placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
-const inputSm = "px-3 py-2 text-sm";
-const btnBase =
-  "rounded-lg font-medium cursor-pointer border-none transition-colors";
-const btnSm = "py-1.5 px-3 text-[0.8125rem]";
-const btnPrimary = "bg-indigo-500 text-white hover:bg-indigo-400";
-const btnGhost =
-  "bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100";
-const btnDanger =
-  "bg-transparent text-red-600 hover:bg-red-50 hover:text-red-700";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 const PRIORITIES: StoryPriority[] = ["niski", "średni", "wysoki"];
+
+const selectClass = cn(
+  "flex h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground outline-none transition-colors",
+  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+  "disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+);
 
 function fmt(ts: number | null): string {
   if (ts == null) return "—";
@@ -45,119 +51,111 @@ type Props = {
   onDelete: () => void;
 };
 
-export const TaskDetailDialog = forwardRef<HTMLDialogElement, Props>(
-  function TaskDetailDialog(
-    {
-      taskId,
-      tasks,
-      stories,
-      usersById,
-      assignableUsers,
-      onClose,
-      onAssign,
-      onMarkDone,
-      onUpdateActualHours,
-      onUpdateTask,
-      onDelete,
-    },
-    ref
-  ) {
-    const task = taskId ? tasks.find((t) => t.id === taskId) ?? null : null;
-    const story = task
-      ? stories.find((s) => s.id === task.historiaId) ?? null
-      : null;
+export function TaskDetailDialog({
+  taskId,
+  tasks,
+  stories,
+  usersById,
+  assignableUsers,
+  onClose,
+  onAssign,
+  onMarkDone,
+  onUpdateActualHours,
+  onUpdateTask,
+  onDelete,
+}: Props) {
+  const open = taskId !== null;
+  const task = taskId ? (tasks.find((t) => t.id === taskId) ?? null) : null;
+  const story = task
+    ? stories.find((s) => s.id === task.historiaId) ?? null
+    : null;
 
-    const [nazwa, setNazwa] = useState("");
-    const [opis, setOpis] = useState("");
-    const [priorytet, setPriorytet] = useState<StoryPriority>("średni");
-    const [estimatedHours, setEstimatedHours] = useState(0);
-    const [actualHours, setActualHours] = useState(0);
-    const [assignUserId, setAssignUserId] = useState("");
+  const [nazwa, setNazwa] = useState("");
+  const [opis, setOpis] = useState("");
+  const [priorytet, setPriorytet] = useState<StoryPriority>("średni");
+  const [estimatedHours, setEstimatedHours] = useState(0);
+  const [actualHours, setActualHours] = useState(0);
+  const [assignUserId, setAssignUserId] = useState("");
 
-    useEffect(() => {
-      if (!task) return;
-      setNazwa(task.nazwa);
-      setOpis(task.opis);
-      setPriorytet(task.priorytet);
-      setEstimatedHours(task.estimatedHours);
-      setActualHours(task.actualHoursWorked);
-      setAssignUserId(task.assigneeId ?? "");
-    }, [task]);
+  useEffect(() => {
+    if (!task) return;
+    setNazwa(task.nazwa);
+    setOpis(task.opis);
+    setPriorytet(task.priorytet);
+    setEstimatedHours(task.estimatedHours);
+    setActualHours(task.actualHoursWorked);
+    setAssignUserId(task.assigneeId ?? "");
+  }, [task]);
 
-    function saveBasics() {
-      const n = nazwa.trim();
-      if (!n || !task) return;
-      onUpdateTask({
-        nazwa: n,
-        opis: opis.trim(),
-        priorytet,
-        estimatedHours,
-      });
-    }
+  function saveBasics() {
+    const n = nazwa.trim();
+    if (!n || !task) return;
+    onUpdateTask({
+      nazwa: n,
+      opis: opis.trim(),
+      priorytet,
+      estimatedHours,
+    });
+  }
 
-    function saveHours() {
-      onUpdateActualHours(actualHours);
-    }
+  function saveHours() {
+    onUpdateActualHours(actualHours);
+  }
 
-    function applyAssign() {
-      const u = assignableUsers.find((x) => x.id === assignUserId);
-      if (u) onAssign(u);
-    }
+  function applyAssign() {
+    const u = assignableUsers.find((x) => x.id === assignUserId);
+    if (u) onAssign(u);
+  }
 
-    return (
-      <dialog
-        ref={ref}
-        onCancel={onClose}
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg max-h-[90vh] rounded-xl border border-zinc-200 bg-white shadow-xl backdrop:bg-black/20 backdrop:backdrop-blur-sm overflow-hidden flex flex-col"
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <DialogContent
+        className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-lg"
+        showCloseButton={false}
       >
         {task && (
           <>
-            <div className="px-5 py-4 border-b border-zinc-200 flex justify-between items-start gap-2 shrink-0">
-              <h2 className="text-lg font-semibold text-zinc-900">
-                Szczegóły zadania
-              </h2>
-              <button
-                type="button"
-                onClick={onClose}
-                className={`${btnBase} ${btnSm} ${btnGhost}`}
-              >
-                Zamknij
-              </button>
-            </div>
-            <div className="px-5 py-4 overflow-y-auto space-y-4 flex-1 min-h-0">
-              <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">
-                  Nazwa
-                </label>
-                <input
-                  type="text"
+            <DialogHeader className="shrink-0 border-b border-border px-5 py-4">
+              <div className="flex items-start justify-between gap-2">
+                <DialogTitle>Szczegóły zadania</DialogTitle>
+                <Button variant="ghost" size="sm" onClick={onClose}>
+                  Zamknij
+                </Button>
+              </div>
+            </DialogHeader>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="task-nazwa">Nazwa</Label>
+                <Input
+                  id="task-nazwa"
                   value={nazwa}
                   onChange={(e) => setNazwa(e.target.value)}
-                  className={`${inputBase} ${inputSm}`}
                 />
               </div>
-              <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">
-                  Opis
-                </label>
-                <textarea
+              <div className="grid gap-2">
+                <Label htmlFor="task-opis">Opis</Label>
+                <Textarea
+                  id="task-opis"
                   value={opis}
                   onChange={(e) => setOpis(e.target.value)}
                   rows={3}
-                  className={`${inputBase} ${inputSm} resize-y`}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-zinc-500 block mb-1">
-                    Priorytet
-                  </label>
+                <div className="grid gap-2">
+                  <Label htmlFor="task-priorytet">Priorytet</Label>
                   <select
+                    id="task-priorytet"
                     value={priorytet}
                     onChange={(e) =>
                       setPriorytet(e.target.value as StoryPriority)
                     }
-                    className={`${inputBase} ${inputSm}`}
+                    className={selectClass}
                   >
                     {PRIORITIES.map((p) => (
                       <option key={p} value={p}>
@@ -166,11 +164,10 @@ export const TaskDetailDialog = forwardRef<HTMLDialogElement, Props>(
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-zinc-500 block mb-1">
-                    Szac. czas (h)
-                  </label>
-                  <input
+                <div className="grid gap-2">
+                  <Label htmlFor="task-est">Szac. czas (h)</Label>
+                  <Input
+                    id="task-est"
                     type="number"
                     min={0}
                     step={0.5}
@@ -178,47 +175,45 @@ export const TaskDetailDialog = forwardRef<HTMLDialogElement, Props>(
                     onChange={(e) =>
                       setEstimatedHours(Number(e.target.value) || 0)
                     }
-                    className={`${inputBase} ${inputSm}`}
                   />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={saveBasics}
-                className={`${btnBase} ${btnSm} ${btnPrimary}`}
-              >
+              <Button size="sm" onClick={saveBasics}>
                 Zapisz zmiany
-              </button>
+              </Button>
 
-              <div className="border-t border-zinc-200 pt-4 space-y-2 text-sm">
+              <Separator />
+
+              <div className="space-y-2 text-sm">
                 <div>
-                  <span className="text-zinc-500">Historyjka: </span>
+                  <span className="text-muted-foreground">Historyjka: </span>
                   <span className="font-medium">{story?.nazwa ?? "—"}</span>
                 </div>
                 <div>
-                  <span className="text-zinc-500">Stan zadania: </span>
+                  <span className="text-muted-foreground">Stan zadania: </span>
                   {TASK_STATUS_LABELS[task.stan]}
                 </div>
                 <div>
-                  <span className="text-zinc-500">Data dodania: </span>
+                  <span className="text-muted-foreground">Data dodania: </span>
                   {fmt(task.createdAt)}
                 </div>
                 <div>
-                  <span className="text-zinc-500">Data startu: </span>
+                  <span className="text-muted-foreground">Data startu: </span>
                   {fmt(task.startedAt)}
                 </div>
                 <div>
-                  <span className="text-zinc-500">Data zakończenia: </span>
+                  <span className="text-muted-foreground">
+                    Data zakończenia:{" "}
+                  </span>
                   {fmt(task.completedAt)}
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">
-                  Zrealizowane roboczogodziny
-                </label>
-                <div className="flex gap-2">
-                  <input
+              <div className="grid gap-2">
+                <Label htmlFor="task-actual">Zrealizowane roboczogodziny</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    id="task-actual"
                     type="number"
                     min={0}
                     step={0.25}
@@ -226,27 +221,29 @@ export const TaskDetailDialog = forwardRef<HTMLDialogElement, Props>(
                     onChange={(e) =>
                       setActualHours(Number(e.target.value) || 0)
                     }
-                    className={`${inputBase} ${inputSm} max-w-[120px]`}
+                    className="max-w-[120px]"
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={saveHours}
-                    className={`${btnBase} ${btnSm} ${btnGhost}`}
                   >
                     Zapisz godziny
-                  </button>
+                  </Button>
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-medium text-zinc-500 block mb-1">
+              <div className="grid gap-2">
+                <Label htmlFor="task-assign">
                   Przypisz osobę (devops / developer)
-                </label>
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   <select
+                    id="task-assign"
                     value={assignUserId}
                     onChange={(e) => setAssignUserId(e.target.value)}
-                    className={`${inputBase} ${inputSm} flex-1 min-w-[200px]`}
+                    className={cn(selectClass, "min-w-[200px] flex-1")}
                   >
                     <option value="">— wybierz —</option>
                     {assignableUsers.map((u) => (
@@ -255,17 +252,16 @@ export const TaskDetailDialog = forwardRef<HTMLDialogElement, Props>(
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
+                  <Button
+                    size="sm"
                     onClick={applyAssign}
                     disabled={!assignUserId || task.stan === "done"}
-                    className={`${btnBase} ${btnSm} ${btnPrimary} disabled:opacity-40`}
                   >
                     Przypisz
-                  </button>
+                  </Button>
                 </div>
                 {task.assigneeId && (
-                  <p className="text-xs text-zinc-600 mt-1">
+                  <p className="text-xs text-muted-foreground">
                     Obecnie:{" "}
                     {(() => {
                       const u = usersById.get(task.assigneeId!);
@@ -278,38 +274,33 @@ export const TaskDetailDialog = forwardRef<HTMLDialogElement, Props>(
               </div>
 
               <div className="flex flex-wrap gap-2 pt-2">
-                <button
-                  type="button"
+                <Button
+                  size="sm"
                   onClick={onMarkDone}
                   disabled={!task.assigneeId || task.stan === "done"}
-                  className={`${btnBase} ${btnSm} ${btnPrimary} disabled:opacity-40`}
                 >
                   Oznacz jako zakończone
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
                   onClick={onDelete}
-                  className={`${btnBase} ${btnSm} ${btnDanger}`}
                 >
                   Usuń zadanie
-                </button>
+                </Button>
               </div>
             </div>
           </>
         )}
         {taskId && !task && (
           <div className="p-6">
-            <p className="text-zinc-600">Nie znaleziono zadania.</p>
-            <button
-              type="button"
-              onClick={onClose}
-              className={`${btnBase} ${btnSm} ${btnPrimary} mt-4`}
-            >
+            <p className="text-muted-foreground">Nie znaleziono zadania.</p>
+            <Button className="mt-4" onClick={onClose}>
               Zamknij
-            </button>
+            </Button>
           </div>
         )}
-      </dialog>
-    );
-  }
-);
+      </DialogContent>
+    </Dialog>
+  );
+}

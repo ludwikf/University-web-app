@@ -1,18 +1,9 @@
 "use client";
 
 import type { Project } from "../lib/projects";
-
-const inputBase =
-  "w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 bg-white text-zinc-900 text-[0.9375rem] outline-none transition placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
-const inputSm = "px-3 py-2 text-sm";
-const btnBase =
-  "rounded-lg font-medium cursor-pointer border-none transition-colors";
-const btnSm = "py-1.5 px-3 text-[0.8125rem]";
-const btnPrimary = "bg-indigo-500 text-white hover:bg-indigo-400";
-const btnGhost =
-  "bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100";
-const btnDanger =
-  "bg-transparent text-red-600 hover:bg-red-50 hover:text-red-700";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 type Props = {
   projects: Project[];
@@ -44,20 +35,20 @@ export function ProjectsTableView({
   onSetActiveProject,
 }: Props) {
   return (
-    <div className="border border-zinc-200 rounded-xl overflow-hidden bg-white">
-      <table className="w-full text-left border-collapse">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-zinc-200 bg-zinc-50">
-            <th className="px-4 py-3 text-sm font-semibold text-zinc-700">
+          <tr className="border-b border-border bg-muted/50">
+            <th className="px-4 py-3 text-sm font-semibold text-foreground">
               Tytuł
             </th>
-            <th className="px-4 py-3 text-sm font-semibold text-zinc-700">
+            <th className="px-4 py-3 text-sm font-semibold text-foreground">
               Opis
             </th>
-            <th className="px-4 py-3 text-sm font-semibold text-zinc-700 w-[100px]">
+            <th className="w-[100px] px-4 py-3 text-sm font-semibold text-foreground">
               Aktywny
             </th>
-            <th className="px-4 py-3 text-sm font-semibold text-zinc-700 w-[140px]">
+            <th className="w-[140px] px-4 py-3 text-sm font-semibold text-foreground">
               Akcje
             </th>
           </tr>
@@ -67,87 +58,74 @@ export function ProjectsTableView({
             editingId === p.id ? (
               <tr
                 key={p.id}
-                className="border-b border-zinc-100 bg-indigo-50/30"
+                className="border-b border-border bg-accent/30"
               >
                 <td className="px-4 py-2">
-                  <input
-                    type="text"
+                  <Input
                     value={editTitle}
                     onChange={(e) => onEditTitle(e.target.value)}
-                    className={`${inputBase} ${inputSm}`}
                     autoFocus
                   />
                 </td>
                 <td className="px-4 py-2">
-                  <input
-                    type="text"
+                  <Input
                     value={editDescription}
                     onChange={(e) => onEditDescription(e.target.value)}
-                    className={`${inputBase} ${inputSm}`}
                   />
                 </td>
                 <td className="px-4 py-2">—</td>
                 <td className="px-4 py-2">
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={onSaveEdit}
-                      className={`${btnBase} ${btnSm} ${btnPrimary}`}
-                    >
+                    <Button size="sm" onClick={onSaveEdit}>
                       Zapisz
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onCancelEdit}
-                      className={`${btnBase} ${btnSm} ${btnGhost}`}
-                    >
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={onCancelEdit}>
                       Anuluj
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>
             ) : (
               <tr
                 key={p.id}
-                className={`border-b border-zinc-100 hover:bg-zinc-50/80 transition-colors ${
-                  activeProjectId === p.id ? "bg-indigo-50/50" : ""
-                }`}
+                className={cn(
+                  "border-b border-border transition-colors hover:bg-muted/50",
+                  activeProjectId === p.id && "bg-accent/40"
+                )}
               >
-                <td className="px-4 py-3 font-medium text-zinc-900">
+                <td className="px-4 py-3 font-medium text-foreground">
                   {p.title}
                 </td>
-                <td className="px-4 py-3 text-sm text-zinc-600 max-w-md">
+                <td className="max-w-md px-4 py-3 text-sm text-muted-foreground">
                   {p.description || "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    type="button"
+                  <Button
+                    size="sm"
+                    variant={
+                      activeProjectId === p.id ? "secondary" : "ghost"
+                    }
                     onClick={() => onSetActiveProject(p.id)}
-                    className={`${btnBase} ${btnSm} ${
-                      activeProjectId === p.id
-                        ? "bg-indigo-100 text-indigo-700"
-                        : btnGhost
-                    }`}
                   >
                     {activeProjectId === p.id ? "Aktywny" : "Ustaw"}
-                  </button>
+                  </Button>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
-                    <button
-                      type="button"
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       onClick={() => onStartEdit(p)}
-                      className={`${btnBase} ${btnSm} ${btnGhost}`}
                     >
                       Edytuj
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
                       onClick={() => onDelete(p.id)}
-                      className={`${btnBase} ${btnSm} ${btnDanger}`}
                     >
                       Usuń
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -156,7 +134,7 @@ export function ProjectsTableView({
         </tbody>
       </table>
       {projects.length === 0 && (
-        <div className="px-4 py-8 text-center text-zinc-500 text-sm">
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground">
           Brak projektów. Kliknij „Dodaj projekt”, aby dodać pierwszy.
         </div>
       )}

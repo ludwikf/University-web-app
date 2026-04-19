@@ -9,18 +9,16 @@ import {
   STORY_PRIORITY_LABELS,
 } from "../lib/stories";
 import type { User } from "../lib/user";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
-const inputBase =
-  "w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 bg-white text-zinc-900 text-[0.9375rem] outline-none transition placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
-const inputSm = "px-3 py-2 text-sm";
-const btnBase =
-  "rounded-lg font-medium cursor-pointer border-none transition-colors";
-const btnSm = "py-1.5 px-3 text-[0.8125rem]";
-const btnPrimary = "bg-indigo-500 text-white hover:bg-indigo-400";
-const btnGhost =
-  "bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100";
-const btnDanger =
-  "bg-transparent text-red-600 hover:bg-red-50 hover:text-red-700";
+const selectClass = cn(
+  "flex h-8 w-full max-w-[180px] min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm text-foreground outline-none transition-colors",
+  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+  "dark:bg-input/30"
+);
 
 const STATUSES: StoryStatus[] = ["todo", "doing", "done"];
 const PRIORITIES: StoryPriority[] = ["niski", "średni", "wysoki"];
@@ -124,40 +122,35 @@ export function StoriesSection({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-semibold text-zinc-800">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-foreground">
           Historyjki: {projectTitle}
         </h2>
-        <button
-          type="button"
-          onClick={() => setAddOpen(true)}
-          className={`${btnBase} ${btnSm} ${btnPrimary}`}
-        >
+        <Button size="sm" onClick={() => setAddOpen(true)}>
           + Dodaj historyjkę
-        </button>
+        </Button>
       </div>
 
       {addOpen && (
-        <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 flex flex-col gap-3">
-          <h3 className="text-sm font-medium text-zinc-700">Nowa historyjka</h3>
-          <input
-            type="text"
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-4">
+          <h3 className="text-sm font-medium text-foreground">
+            Nowa historyjka
+          </h3>
+          <Input
             placeholder="Nazwa"
             value={addNazwa}
             onChange={(e) => setAddNazwa(e.target.value)}
-            className={`${inputBase} ${inputSm}`}
           />
-          <textarea
+          <Textarea
             placeholder="Opis"
             value={addOpis}
             onChange={(e) => setAddOpis(e.target.value)}
             rows={2}
-            className={`${inputBase} ${inputSm} resize-y`}
           />
           <select
             value={addPriorytet}
             onChange={(e) => setAddPriorytet(e.target.value as StoryPriority)}
-            className={`${inputBase} ${inputSm} max-w-[180px]`}
+            className={selectClass}
           >
             {PRIORITIES.map((p) => (
               <option key={p} value={p}>
@@ -165,24 +158,16 @@ export function StoriesSection({
               </option>
             ))}
           </select>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted-foreground">
             Właściciel: {currentUser.firstName} {currentUser.lastName}
           </p>
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setAddOpen(false)}
-              className={`${btnBase} ${btnSm} ${btnGhost}`}
-            >
+            <Button size="sm" variant="ghost" onClick={() => setAddOpen(false)}>
               Anuluj
-            </button>
-            <button
-              type="button"
-              onClick={handleAdd}
-              className={`${btnBase} ${btnSm} ${btnPrimary}`}
-            >
+            </Button>
+            <Button size="sm" onClick={handleAdd}>
               Dodaj
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -194,9 +179,9 @@ export function StoriesSection({
           return (
             <div
               key={status}
-              className="bg-white border border-zinc-200 rounded-xl overflow-hidden"
+              className="overflow-hidden rounded-xl border border-border bg-card"
             >
-              <div className="px-3 py-2 bg-zinc-100 border-b border-zinc-200 text-sm font-medium text-zinc-700">
+              <div className="border-b border-border bg-muted/60 px-3 py-2 text-sm font-medium text-foreground">
                 {STORY_STATUS_LABELS[status]}
               </div>
               <div className="p-2 space-y-2 min-h-[80px]">
@@ -204,27 +189,24 @@ export function StoriesSection({
                   editingId === s.id ? (
                     <div
                       key={s.id}
-                      className="p-3 bg-indigo-50/50 rounded-lg border border-indigo-200 space-y-2"
+                      className="space-y-2 rounded-lg border border-primary/30 bg-accent/40 p-3"
                     >
-                      <input
-                        type="text"
+                      <Input
                         value={editNazwa}
                         onChange={(e) => setEditNazwa(e.target.value)}
-                        className={`${inputBase} ${inputSm}`}
                         autoFocus
                       />
-                      <textarea
+                      <Textarea
                         value={editOpis}
                         onChange={(e) => setEditOpis(e.target.value)}
                         rows={2}
-                        className={`${inputBase} ${inputSm} resize-y`}
                       />
                       <select
                         value={editPriorytet}
                         onChange={(e) =>
                           setEditPriorytet(e.target.value as StoryPriority)
                         }
-                        className={`${inputBase} ${inputSm}`}
+                        className={cn(selectClass, "max-w-none")}
                       >
                         {PRIORITIES.map((p) => (
                           <option key={p} value={p}>
@@ -233,72 +215,67 @@ export function StoriesSection({
                         ))}
                       </select>
                       <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={saveEdit}
-                          className={`${btnBase} ${btnSm} ${btnPrimary}`}
-                        >
+                        <Button size="sm" onClick={saveEdit}>
                           Zapisz
-                        </button>
-                        <button
-                          type="button"
-                          onClick={cancelEdit}
-                          className={`${btnBase} ${btnSm} ${btnGhost}`}
-                        >
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={cancelEdit}>
                           Anuluj
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ) : (
                     <div
                       key={s.id}
-                      className="p-3 border border-zinc-200 rounded-lg hover:border-zinc-300 bg-white"
+                      className="rounded-lg border border-border bg-card p-3 transition-colors hover:border-primary/40"
                     >
-                      <div className="font-medium text-zinc-900 text-sm">
+                      <div className="text-sm font-medium text-foreground">
                         {s.nazwa}
                       </div>
                       {s.opis ? (
-                        <p className="text-xs text-zinc-600 mt-1 line-clamp-2">
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                           {s.opis}
                         </p>
                       ) : null}
-                      <div className="flex items-center justify-between mt-2 flex-wrap gap-1">
-                        <span className="text-xs text-zinc-500">
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-1">
+                        <span className="text-xs text-muted-foreground">
                           {STORY_PRIORITY_LABELS[s.priorytet]} ·{" "}
                           {ownerName(s.ownerId)}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="mt-2 flex flex-wrap gap-1">
                         {STATUSES.filter((st) => st !== s.stan).map((st) => (
-                          <button
+                          <Button
                             key={st}
-                            type="button"
+                            size="xs"
+                            variant="ghost"
+                            className="h-7 px-2 text-[0.7rem]"
                             onClick={() => {
                               onUpdateStoryStatus(s.id, st);
                               onStoriesChange();
                             }}
-                            className={`${btnBase} text-[0.7rem] px-2 py-1 ${btnGhost}`}
                           >
                             → {STORY_STATUS_LABELS[st]}
-                          </button>
+                          </Button>
                         ))}
-                        <button
-                          type="button"
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          className="h-7 px-2 text-[0.7rem]"
                           onClick={() => startEdit(s)}
-                          className={`${btnBase} text-[0.7rem] px-2 py-1 ${btnGhost}`}
                         >
                           Edytuj
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant="destructive"
+                          className="h-7 px-2 text-[0.7rem]"
                           onClick={() => {
                             onDeleteStory(s.id);
                             onStoriesChange();
                           }}
-                          className={`${btnBase} text-[0.7rem] px-2 py-1 ${btnDanger}`}
                         >
                           Usuń
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )

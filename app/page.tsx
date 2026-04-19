@@ -32,6 +32,19 @@ import { StoriesSection } from "./components/StoriesSection";
 import { TasksKanban } from "./components/TasksKanban";
 import { TaskDetailDialog } from "./components/TaskDetailDialog";
 import { AddTaskDialog } from "./components/AddTaskDialog";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -52,8 +65,6 @@ export default function Home() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const hasHydrated = useRef(false);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const taskDetailRef = useRef<HTMLDialogElement>(null);
 
   const currentUser = useMemo(() => getCurrentUser(), []);
   const usersById = useMemo(() => usersToMap(MOCK_USERS), []);
@@ -167,18 +178,6 @@ export default function Home() {
     refreshTasks();
   }
 
-  useEffect(() => {
-    if (!dialogRef.current) return;
-    if (dialogOpen) dialogRef.current.showModal();
-    else dialogRef.current.close();
-  }, [dialogOpen]);
-
-  useEffect(() => {
-    if (!taskDetailRef.current) return;
-    if (selectedTaskId) taskDetailRef.current.showModal();
-    else taskDetailRef.current.close();
-  }, [selectedTaskId]);
-
   function handleAdd() {
     const t = title.trim();
     if (!t) return;
@@ -217,69 +216,56 @@ export default function Home() {
     setEditingId(null);
   }
 
-  const inputBase =
-    "w-full px-3.5 py-2.5 rounded-lg border border-zinc-300 bg-white text-zinc-900 text-[0.9375rem] outline-none transition placeholder:text-zinc-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20";
-  const btnBase =
-    "rounded-lg font-medium cursor-pointer border-none transition-colors";
-  const btnAdd =
-    "py-2.5 px-5 bg-indigo-500 text-white hover:bg-indigo-400 text-[0.9375rem]";
-  const btnSm = "py-1.5 px-3 text-[0.8125rem]";
-  const btnPrimary = "bg-indigo-500 text-white hover:bg-indigo-400";
-  const btnGhost =
-    "bg-transparent text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100";
-
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <div className="flex justify-between items-center px-[30px] pt-6 flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-semibold tracking-tight">
             Project Manager
           </h1>
-          <span className="text-sm text-zinc-500 border-l border-zinc-200 pl-4">
+          <span className="text-sm text-muted-foreground border-l border-border pl-4">
             Zalogowany: {currentUser.firstName} {currentUser.lastName} (
             {currentUser.role})
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-500">Widok:</span>
+          <ThemeToggle />
+          <span className="text-sm text-muted-foreground">Widok:</span>
           <div
             role="group"
             aria-label="Tryb widoku"
-            className="inline-flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5"
+            className="inline-flex rounded-lg border border-border bg-muted/50 p-0.5"
           >
             <button
               type="button"
               onClick={() => setViewMode("tiles")}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "tiles"
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
               Kafelki
             </button>
             <button
               type="button"
               onClick={() => setViewMode("table")}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                 viewMode === "table"
-                  ? "bg-white text-zinc-900 shadow-sm"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
               Tabela
             </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setDialogOpen(true)}
-            className={`${btnBase} ${btnAdd}`}
-          >
-            Dodaj projekt
-          </button>
+          <Button onClick={() => setDialogOpen(true)}>Dodaj projekt</Button>
         </div>
       </div>
-      <div className="px-[30px] pb-2 text-xs text-zinc-500">
+      <Separator className="mt-4" />
+      <div className="px-[30px] pb-2 pt-2 text-xs text-muted-foreground">
         Użytkownicy:{" "}
         {MOCK_USERS.map((u) => `${u.firstName} ${u.lastName} (${u.role})`).join(
           " · "
@@ -288,7 +274,9 @@ export default function Home() {
 
       <section className="flex-1 px-[30px] py-6 overflow-auto space-y-8">
         <div>
-          <h2 className="text-sm font-medium text-zinc-500 mb-3">Projekty</h2>
+          <h2 className="text-sm font-medium text-muted-foreground mb-3">
+            Projekty
+          </h2>
           {viewMode === "tiles" ? (
             <ProjectsTilesView
               projects={projects}
@@ -324,7 +312,7 @@ export default function Home() {
 
         {activeProjectId && (
           <>
-            <div className="pt-6 border-t border-zinc-200">
+            <div className="pt-6 border-t border-border">
               <StoriesSection
                 projectId={activeProjectId}
                 projectTitle={
@@ -340,7 +328,7 @@ export default function Home() {
                 onDeleteStory={handleDeleteStory}
               />
             </div>
-            <div className="pt-6 border-t border-zinc-200">
+            <div className="pt-6 border-t border-border">
               <TasksKanban
                 tasks={tasks}
                 stories={stories}
@@ -353,7 +341,6 @@ export default function Home() {
       </section>
 
       <TaskDetailDialog
-        ref={taskDetailRef}
         taskId={selectedTaskId}
         tasks={tasks}
         stories={stories}
@@ -410,48 +397,41 @@ export default function Home() {
         }}
       />
 
-      <dialog
-        ref={dialogRef}
-        onCancel={() => setDialogOpen(false)}
-        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-xl backdrop:bg-black/20 backdrop:backdrop-blur-sm"
-      >
-        <h2 className="text-xl font-semibold tracking-tight mb-4">
-          Nowy projekt
-        </h2>
-        <div className="flex flex-col gap-3">
-          <input
-            type="text"
-            placeholder="Tytuł projektu"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-            className={inputBase}
-          />
-          <textarea
-            placeholder="Opis"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            className={`${inputBase} resize-y min-h-[60px]`}
-          />
-          <div className="flex gap-2 justify-end pt-2">
-            <button
-              type="button"
-              onClick={() => setDialogOpen(false)}
-              className={`${btnBase} ${btnSm} ${btnGhost}`}
-            >
-              Anuluj
-            </button>
-            <button
-              type="button"
-              onClick={handleAdd}
-              className={`${btnBase} ${btnSm} ${btnPrimary}`}
-            >
-              Dodaj
-            </button>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nowy projekt</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="project-title">Tytuł</Label>
+              <Input
+                id="project-title"
+                placeholder="Tytuł projektu"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="project-desc">Opis</Label>
+              <Textarea
+                id="project-desc"
+                placeholder="Opis"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
-        </div>
-      </dialog>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Anuluj
+            </Button>
+            <Button onClick={handleAdd}>Dodaj</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
