@@ -10,12 +10,14 @@ import {
 import { getActiveProjectId, setActiveProjectId } from "./lib/activeProject";
 import {
   getStoriesByProject,
+  getStoryById,
   createStory,
   updateStory,
   deleteStory,
 } from "./lib/stories";
 import {
   getTasksByProject,
+  getTaskById,
   createTask,
   deleteTask,
   assignTaskToUser,
@@ -32,7 +34,13 @@ import { StoriesSection } from "./components/StoriesSection";
 import { TasksKanban } from "./components/TasksKanban";
 import { TaskDetailDialog } from "./components/TaskDetailDialog";
 import { AddTaskDialog } from "./components/AddTaskDialog";
-import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  notifyNewTaskForStoryOwner,
+  notifyProjectCreated,
+  notifyTaskAssigned,
+  notifyTaskDeletedForStoryOwner,
+  notifyTaskStatusForStoryOwner,
+} from "./lib/notifications";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -176,12 +184,19 @@ export default function Home() {
       estimatedHours
     );
     refreshTasks();
+    const story = getStoryById(historiaId);
+    const name = nazwa.trim();
+    if (story && name) {
+      notifyNewTaskForStoryOwner(story.ownerId, name, story.nazwa);
+    }
   }
 
   function handleAdd() {
     const t = title.trim();
     if (!t) return;
-    setProjects((prev) => [...prev, createProject(t, description.trim())]);
+    const newProject = createProject(t, description.trim());
+    setProjects((prev) => [...prev, newProject]);
+    notifyProjectCreated(newProject.title, currentUser.id);
     setTitle("");
     setDescription("");
     setDialogOpen(false);
@@ -218,18 +233,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
-      <div className="flex justify-between items-center px-[30px] pt-6 flex-wrap gap-3">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Project Manager
-          </h1>
-          <span className="text-sm text-muted-foreground border-l border-border pl-4">
-            Zalogowany: {currentUser.firstName} {currentUser.lastName} (
-            {currentUser.role})
-          </span>
-        </div>
+      <div className="flex justify-end items-center px-[30px] pt-6 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <ThemeToggle />
           <span className="text-sm text-muted-foreground">Widok:</span>
           <div
             role="group"
@@ -351,13 +356,39 @@ export default function Home() {
         onClose={() => setSelectedTaskId(null)}
         onAssign={(user: User) => {
           if (!selectedTaskId) return;
+          const before = getTaskById(selectedTaskId);
           assignTaskToUser(selectedTaskId, user);
           refreshStoriesAndTasks();
+          const after = getTaskById(selectedTaskId);
+          if (before && after) {
+            const story = getStoryById(before.historiaId);
+            notifyTaskAssigned(user.id, after.nazwa, story?.nazwa ?? "—");
+            if (story && before.stan !== after.stan && after.stan === "doing") {
+              notifyTaskStatusForStoryOwner(
+                story.ownerId,
+                after.nazwa,
+                story.nazwa,
+                "doing"
+              );
+            }
+          }
         }}
         onMarkDone={() => {
           if (!selectedTaskId) return;
+          const before = getTaskById(selectedTaskId);
           markTaskDone(selectedTaskId);
           refreshStoriesAndTasks();
+          if (before) {
+            const story = getStoryById(before.historiaId);
+            if (story && before.stan !== "done") {
+              notifyTaskStatusForStoryOwner(
+                story.ownerId,
+                before.nazwa,
+                story.nazwa,
+                "done"
+              );
+            }
+          }
         }}
         onUpdateActualHours={(hours: number) => {
           if (!selectedTaskId) return;
@@ -375,7 +406,16 @@ export default function Home() {
         }}
         onDelete={() => {
           if (!selectedTaskId) return;
+          const task = getTaskById(selectedTaskId);
+          const story = task ? getStoryById(task.historiaId) : null;
           deleteTask(selectedTaskId);
+          if (task && story) {
+            notifyTaskDeletedForStoryOwner(
+              story.ownerId,
+              task.nazwa,
+              story.nazwa
+            );
+          }
           refreshTasks();
           setSelectedTaskId(null);
         }}
